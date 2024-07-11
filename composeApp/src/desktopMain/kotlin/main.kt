@@ -21,7 +21,7 @@ suspend fun main() {
     println("Downloaded file $file with size ${file.length()}")
 
     val response = client.post("https://httpbin.org/post") {
-        setBody(file.readChannel())
+        setBody(bodyFromFile(file.path))
     }
 
     println("Received text body with size ${response.bodyAsText().length}")

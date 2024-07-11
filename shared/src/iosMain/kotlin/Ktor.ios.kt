@@ -17,6 +17,31 @@ import kotlin.coroutines.resume
 
 private const val BUFFER_SIZE = 4096
 
+actual suspend fun bodyFromFile(filepath: String): OutgoingContent {
+    suspend fun read(fd: Int): NSData? {
+        return suspendCancellableCoroutine { continuation ->
+            dispatch_read(fd, BUFFER_SIZE.toULong(), queue) { dispatchData, _ ->
+                val data = dispatchData as NSData
+                continuation.resume(if (data.bytes != null) data else null)
+            }
+        }
+    }
+
+    return ChannelWriterContent(contentType = ContentType.defaultForFilePath(filepath), body = {
+        val fd = open(filepath, O_RDWR)
+        try {
+            while (true) {
+                val data = read(fd) ?: break
+                val bytes: CPointer<ByteVar> = data.bytes!!.reinterpret()
+                writeFully(bytes, 0, data.length.toInt())
+                flush()
+            }
+        } finally {
+            close(fd)
+        }
+    })
+}
+
 @OptIn(ExperimentalForeignApi::class)
 actual suspend fun makeRequests() {
     val client = HttpClient(Darwin)
