@@ -17,3 +17,7 @@ actual suspend fun bodyFromFile(filepath: String): OutgoingContent {
         }
     }
 }
+
+actual suspend fun ByteReadChannel.writeToFile(filepath: String) {
+    this.copyTo(File(filepath).writeChannel())
+}
